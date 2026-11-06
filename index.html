@@ -1,1 +1,119 @@
-Привет
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Пользователи</title>
+</head>
+<body>
+  <h2>Добавить пользователя</h2>
+
+  <form id="user-form">
+    <label>
+      Username:
+      <input id="username" type="text" autocomplete="username" required>
+    </label>
+
+    <br><br>
+
+    <label>
+      Password:
+      <input id="password" type="password" autocomplete="new-password" required>
+    </label>
+
+    <br><br>
+
+    <button type="submit">Добавить</button>
+    <button id="refresh-button" type="button">Обновить список</button>
+  </form>
+
+  <p id="message"></p>
+
+  <h3>Все пользователи</h3>
+
+  <table border="1" cellpadding="8">
+    <thead>
+      <tr>
+        <th>Username</th>
+        <th>Password</th>
+        <th>ID</th>
+      </tr>
+    </thead>
+    <tbody id="users-list"></tbody>
+  </table>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script>
+    const db = window.supabase.createClient(
+      'https://zspjhzinmcihnyfgusos.supabase.co',
+      'sb_publishable_PqSDy3Qeqf7WhtcFUvY9vg_lqN8_R5B'
+    );
+
+    const form = document.getElementById('user-form');
+    const message = document.getElementById('message');
+    const usersList = document.getElementById('users-list');
+
+    async function loadUsers() {
+      message.textContent = 'Загружаю список...';
+
+      const { data, error } = await db
+        .from('users')
+        .select('id, username');
+
+      if (error) {
+        message.textContent = 'Ошибка загрузки: ' + error.message;
+        return;
+      }
+
+      usersList.replaceChildren();
+
+      for (const user of data) {
+        const row = document.createElement('tr');
+
+        const usernameCell = document.createElement('td');
+        usernameCell.textContent = user.username;
+
+        const passwordCell = document.createElement('td');
+        passwordCell.textContent = 'не скажу';
+
+        const idCell = document.createElement('td');
+        idCell.textContent = user.id;
+
+        row.append(usernameCell, passwordCell, idCell);
+        usersList.appendChild(row);
+      }
+
+      message.textContent = `Пользователей: ${data.length}`;
+    }
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!username || !password) {
+        message.textContent = 'Введите username и password.';
+        return;
+      }
+
+      // Сохраняется только username. Пароль в таблицу не отправляется.
+      const { error } = await db
+        .from('users')
+        .insert({ username });
+
+      if (error) {
+        message.textContent = 'Ошибка добавления: ' + error.message;
+        return;
+      }
+
+      form.reset();
+      await loadUsers();
+    });
+
+    document.getElementById('refresh-button')
+      .addEventListener('click', loadUsers);
+
+    loadUsers();
+  </script>
+</body>
+</html>
